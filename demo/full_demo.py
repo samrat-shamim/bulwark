@@ -274,10 +274,11 @@ def main():
         if resp.status_code == 200:
             data = resp.json()
             s = data.get("session", {})
+            events = data.get("events", [])
             log(f"Session status: {RED}KILLED{RESET}", "")
             if s.get("killed_at"):
                 log(f"Killed at: {s['killed_at']}", DIM)
-            log(f"Total events: {s.get('event_count', '?')}", DIM)
+            log(f"Total events: {len(events)}", DIM)
     else:
         log(f"Agent finished without being killed (evaluator may need more time)", YELLOW)
         log("Try running with a lower threshold or check evaluator logs", DIM)
