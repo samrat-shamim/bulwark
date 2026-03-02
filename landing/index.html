@@ -842,14 +842,11 @@
       <h2 class="reveal">Don't wait for a rogue agent<br>to be your wake-up call.</h2>
       <p class="sub reveal reveal-delay-1">Now accepting design partners. Free tier for startups.</p>
 
-      <!-- ConvertKit Form Placeholder -->
-      <!-- REPLACE: Swap this form with your ConvertKit embed code -->
-      <form class="email-form reveal reveal-delay-2" action="#" method="POST">
+      <form class="email-form reveal reveal-delay-2" id="waitlist-form">
         <input type="email" name="email" placeholder="you@company.com" required aria-label="Email address">
         <button type="submit">Request Early Access</button>
       </form>
-      <p class="form-note reveal reveal-delay-3">No spam. No credit card. We reply within 24 hours.</p>
-      <!-- END ConvertKit Placeholder -->
+      <p class="form-note reveal reveal-delay-3" id="form-status">No spam. No credit card. We reply within 24 hours.</p>
 
     </div>
   </section>
@@ -874,6 +871,39 @@
         });
       }, { threshold: 0.15 });
       reveals.forEach(el => observer.observe(el));
+    });
+
+    // Waitlist form submission
+    const API_URL = 'https://api.bulwark.live';
+    document.getElementById('waitlist-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button');
+      const status = document.getElementById('form-status');
+      const email = e.target.email.value;
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      try {
+        const res = await fetch(`${API_URL}/v1/waitlist`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        if (res.ok) {
+          btn.textContent = 'You\'re In';
+          status.textContent = 'We\'ll reach out within 24 hours.';
+          status.style.color = '#00ffd5';
+          e.target.email.value = '';
+        } else {
+          throw new Error('Request failed');
+        }
+      } catch {
+        btn.textContent = 'Request Early Access';
+        btn.disabled = false;
+        status.textContent = 'Something went wrong. Try again or email hello@bulwark.live';
+        status.style.color = '#ff4444';
+      }
     });
   </script>
 
