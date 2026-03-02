@@ -5,31 +5,36 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.auth import get_agent
 from app.db import async_session, Event, SessionRecord, Agent
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
+
+MAX_BATCH_SIZE = 500
 
 
 class EventPayload(BaseModel):
-    event_id: str
-    session_id: str
-    agent_name: str
-    environment: str = "production"
-    event_type: str
+    event_id: str = Field(max_length=128)
+    session_id: str = Field(max_length=128)
+    agent_name: str = Field(max_length=256)
+    environment: str = Field(default="production", max_length=64)
+    event_type: str = Field(max_length=64)
     timestamp: str
     duration_ms: int | None = None
-    status: str = "success"
+    status: str = Field(default="success", max_length=32)
     # All other fields go into payload
     model_config = {"extra": "allow"}
 
 
 class BatchRequest(BaseModel):
-    events: list[EventPayload]
+    events: list[EventPayload] = Field(max_length=MAX_BATCH_SIZE)
 
 
 class BatchResponse(BaseModel):
@@ -38,7 +43,8 @@ class BatchResponse(BaseModel):
 
 
 @router.post("/events/batch", response_model=BatchResponse)
-async def ingest_events(batch: BatchRequest, agent: Agent = Depends(get_agent)):
+@limiter.limit("120/minute")
+async def ingest_events(request: Request, batch: BatchRequest, agent: Agent = Depends(get_agent)):
     """Ingest a batch of telemetry events from the SDK."""
     accepted = 0
     errors = 0

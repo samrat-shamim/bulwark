@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Agent, SessionSummary, Event, Stats } from '../types'
 
+const API_BASE = import.meta.env.VITE_API_URL || ''
 const API_KEY = localStorage.getItem('bulwark_api_key') || ''
 
 const headers = () => ({
@@ -9,7 +10,7 @@ const headers = () => ({
 })
 
 async function fetchJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url, { headers: headers() })
+  const res = await fetch(`${API_BASE}${url}`, { headers: headers() })
   if (!res.ok) throw new Error(`API error: ${res.status}`)
   return res.json()
 }
@@ -67,7 +68,7 @@ export function useKillSession() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      const res = await fetch(`/v1/sessions/${sessionId}/kill`, {
+      const res = await fetch(`${API_BASE}/v1/sessions/${sessionId}/kill`, {
         method: 'POST',
         headers: headers(),
       })
@@ -134,7 +135,7 @@ export function useToggleRule() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (ruleId: string) => {
-      const res = await fetch(`/v1/rules/${ruleId}/toggle`, {
+      const res = await fetch(`${API_BASE}/v1/rules/${ruleId}/toggle`, {
         method: 'POST',
         headers: headers(),
       })
@@ -149,7 +150,7 @@ export function useAcknowledgeAlert() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (alertId: string) => {
-      const res = await fetch(`/v1/alerts/${alertId}/ack`, {
+      const res = await fetch(`${API_BASE}/v1/alerts/${alertId}/ack`, {
         method: 'POST',
         headers: headers(),
       })
@@ -166,7 +167,7 @@ export function useCreateRule() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (rule: Omit<AlertRule, 'id' | 'created_at' | 'updated_at'>) => {
-      const res = await fetch('/v1/rules', {
+      const res = await fetch(`${API_BASE}/v1/rules`, {
         method: 'POST',
         headers: headers(),
         body: JSON.stringify(rule),

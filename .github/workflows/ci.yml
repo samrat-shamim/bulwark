@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  sdk-tests:
+    name: Python SDK Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install SDK + test deps
+        run: |
+          pip install ./sdk
+          pip install pytest respx httpx
+
+      - name: Run SDK tests
+        run: pytest sdk/tests/ -v
+
+  api-tests:
+    name: API Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install API deps + test deps
+        run: |
+          pip install -r api/requirements.txt
+          pip install pytest pytest-asyncio httpx aiosqlite
+
+      - name: Run API tests
+        working-directory: api
+        run: pytest tests/ -v
+
+  dashboard-build:
+    name: Dashboard Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Type check
+        working-directory: dashboard
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: dashboard
+        run: npx vite build
+
+  ts-sdk-build:
+    name: TypeScript SDK Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        working-directory: sdk-ts
+        run: npm ci
+
+      - name: Type check
+        working-directory: sdk-ts
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: sdk-ts
+        run: npx tsup

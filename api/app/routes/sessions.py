@@ -4,14 +4,17 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import select
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.auth import get_agent
 from app.db import async_session, SessionRecord, Event, Agent
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 class SessionSummary(BaseModel):
@@ -105,10 +108,12 @@ async def get_session(session_id: str, agent: Agent = Depends(get_agent)):
 
 
 @router.get("/sessions/{session_id}/status", response_model=SessionStatus)
-async def session_status(session_id: str):
+@limiter.limit("60/minute")
+async def session_status(request: Request, session_id: str):
     """Check if a session has been killed. Used by SDK kill switch polling.
 
     Note: No auth required — SDK polls this with session_id.
+    Rate limited to 60/min per IP to prevent enumeration.
     """
     async with async_session() as db:
         session = await db.get(SessionRecord, session_id)

@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import secrets
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy import select, func
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
-from app.auth import get_agent
+from app.auth import get_agent, hash_api_key
 from app.db import async_session, Agent, SessionRecord, Event
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 
@@ -73,3 +78,21 @@ async def list_agents(agent: Agent = Depends(get_agent)):
             ))
 
     return {"agents": result}
+
+
+@router.post("/agents/rotate-key")
+@limiter.limit("5/hour")
+async def rotate_api_key(request: Request, agent: Agent = Depends(get_agent)):
+    """Rotate the API key for the authenticated agent.
+
+    Returns the new key exactly once. Store it — it cannot be retrieved again.
+    """
+    new_key = f"bwk_{secrets.token_hex(20)}"
+    new_hash = hash_api_key(new_key)
+
+    async with async_session() as db:
+        db_agent = await db.get(Agent, agent.id)
+        db_agent.api_key_hash = new_hash
+        await db.commit()
+
+    return {"api_key": new_key, "warning": "Store this key securely. It cannot be retrieved again."}
