@@ -11,10 +11,12 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
-DATABASE_URL = os.getenv(
+_raw_url = os.getenv(
     "DATABASE_URL",
     "postgresql+asyncpg://bulwark:bulwark@localhost:5432/bulwark",
 )
+# Railway provides postgresql:// but asyncpg needs postgresql+asyncpg://
+DATABASE_URL = _raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
