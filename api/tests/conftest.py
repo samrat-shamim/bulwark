@@ -22,6 +22,7 @@ import app.routes.agents as agents_module
 import app.routes.stats as stats_module
 import app.routes.rules as rules_module
 import app.routes.alerts as alerts_module
+import app.routes.waitlist as waitlist_module
 import app.evaluator as evaluator_module
 
 
@@ -38,6 +39,7 @@ _SESSION_MODULES = [
     stats_module,
     rules_module,
     alerts_module,
+    waitlist_module,
     evaluator_module,
 ]
 

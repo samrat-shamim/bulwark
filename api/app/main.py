@@ -12,7 +12,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from app.db import engine, Base
-from app.routes import events, sessions, health, agents, stats, rules, alerts
+from app.routes import events, sessions, health, agents, stats, rules, alerts, waitlist
 from app.evaluator import evaluate_rules
 
 
@@ -109,3 +109,4 @@ app.include_router(agents.router, prefix="/v1")
 app.include_router(stats.router, prefix="/v1")
 app.include_router(rules.router, prefix="/v1")
 app.include_router(alerts.router, prefix="/v1")
+app.include_router(waitlist.router, prefix="/v1")
