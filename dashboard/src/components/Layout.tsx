@@ -9,7 +9,7 @@ interface LayoutProps {
 
 export function Layout({ sidebar, topRight, children }: LayoutProps) {
   return (
-    <div className="flex h-screen bg-gray-950 text-gray-100">
+    <div className="flex h-full bg-gray-950 text-gray-100">
       {/* Sidebar */}
       <aside className="w-64 border-r border-gray-800 flex flex-col">
         <div className="p-4 border-b border-gray-800">

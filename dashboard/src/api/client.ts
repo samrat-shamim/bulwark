@@ -1,8 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Agent, SessionSummary, Event, Stats } from '../types'
+import {
+  DEMO_AGENTS, DEMO_SESSIONS, DEMO_SESSION_DETAIL, DEMO_EVENTS,
+  DEMO_STATS, DEMO_RULES, DEMO_ALERTS, DEMO_UNREAD_ALERTS,
+} from '../demo/data'
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 const API_KEY = localStorage.getItem('bulwark_api_key') || ''
+
+export function isDemoMode(): boolean {
+  return !API_KEY
+}
 
 const headers = () => ({
   'Authorization': `Bearer ${API_KEY}`,
@@ -17,49 +25,68 @@ async function fetchJSON<T>(url: string): Promise<T> {
 
 // Agents
 export function useAgents() {
+  const demo = isDemoMode()
   return useQuery<{ agents: Agent[] }>({
     queryKey: ['agents'],
     queryFn: () => fetchJSON('/v1/agents'),
-    refetchInterval: 3000,
+    enabled: !demo,
+    refetchInterval: demo ? false : 3000,
+    ...(demo ? { initialData: DEMO_AGENTS } : {}),
   })
 }
 
 // Sessions
 export function useSessions() {
+  const demo = isDemoMode()
   return useQuery<{ sessions: SessionSummary[] }>({
     queryKey: ['sessions'],
     queryFn: () => fetchJSON('/v1/sessions'),
-    refetchInterval: 2000,
+    enabled: !demo,
+    refetchInterval: demo ? false : 2000,
+    ...(demo ? { initialData: DEMO_SESSIONS } : {}),
   })
 }
 
 // Session detail
 export function useSession(sessionId: string | null) {
+  const demo = isDemoMode()
   return useQuery<{ session: SessionSummary; events: Event[] }>({
     queryKey: ['session', sessionId],
     queryFn: () => fetchJSON(`/v1/sessions/${sessionId}`),
-    enabled: !!sessionId,
-    refetchInterval: 2000,
+    enabled: !demo && !!sessionId,
+    refetchInterval: demo ? false : 2000,
+    ...(demo && sessionId ? {
+      initialData: {
+        session: DEMO_SESSIONS.sessions.find(s => s.id === sessionId) ?? DEMO_SESSION_DETAIL.session,
+        events: DEMO_EVENTS.events.filter(e => e.session_id === sessionId),
+      },
+    } : {}),
   })
 }
 
 // Events feed
 export function useEvents(since?: string) {
+  const demo = isDemoMode()
   const params = new URLSearchParams({ limit: '100' })
   if (since) params.set('since', since)
   return useQuery<{ events: Event[] }>({
     queryKey: ['events', since],
     queryFn: () => fetchJSON(`/v1/events?${params}`),
-    refetchInterval: 2000,
+    enabled: !demo,
+    refetchInterval: demo ? false : 2000,
+    ...(demo ? { initialData: DEMO_EVENTS } : {}),
   })
 }
 
 // Stats
 export function useStats() {
+  const demo = isDemoMode()
   return useQuery<Stats>({
     queryKey: ['stats'],
     queryFn: () => fetchJSON('/v1/stats'),
-    refetchInterval: 3000,
+    enabled: !demo,
+    refetchInterval: demo ? false : 3000,
+    ...(demo ? { initialData: DEMO_STATS } : {}),
   })
 }
 
@@ -68,6 +95,7 @@ export function useKillSession() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (sessionId: string) => {
+      if (isDemoMode()) return { status: 'demo' }
       const res = await fetch(`${API_BASE}/v1/sessions/${sessionId}/kill`, {
         method: 'POST',
         headers: headers(),
@@ -108,26 +136,35 @@ export interface AlertRecord {
 }
 
 export function useAlertRules() {
+  const demo = isDemoMode()
   return useQuery<{ rules: AlertRule[] }>({
     queryKey: ['rules'],
     queryFn: () => fetchJSON('/v1/rules'),
-    refetchInterval: 5000,
+    enabled: !demo,
+    refetchInterval: demo ? false : 5000,
+    ...(demo ? { initialData: DEMO_RULES } : {}),
   })
 }
 
 export function useAlerts() {
+  const demo = isDemoMode()
   return useQuery<{ alerts: AlertRecord[] }>({
     queryKey: ['alerts'],
     queryFn: () => fetchJSON('/v1/alerts'),
-    refetchInterval: 3000,
+    enabled: !demo,
+    refetchInterval: demo ? false : 3000,
+    ...(demo ? { initialData: DEMO_ALERTS } : {}),
   })
 }
 
 export function useUnreadAlerts() {
+  const demo = isDemoMode()
   return useQuery<{ unread: number }>({
     queryKey: ['alerts', 'unread'],
     queryFn: () => fetchJSON('/v1/alerts/unread'),
-    refetchInterval: 3000,
+    enabled: !demo,
+    refetchInterval: demo ? false : 3000,
+    ...(demo ? { initialData: DEMO_UNREAD_ALERTS } : {}),
   })
 }
 
@@ -135,6 +172,7 @@ export function useToggleRule() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (ruleId: string) => {
+      if (isDemoMode()) return { status: 'demo' }
       const res = await fetch(`${API_BASE}/v1/rules/${ruleId}/toggle`, {
         method: 'POST',
         headers: headers(),
@@ -150,6 +188,7 @@ export function useAcknowledgeAlert() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (alertId: string) => {
+      if (isDemoMode()) return { status: 'demo' }
       const res = await fetch(`${API_BASE}/v1/alerts/${alertId}/ack`, {
         method: 'POST',
         headers: headers(),
@@ -167,6 +206,7 @@ export function useCreateRule() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (rule: Omit<AlertRule, 'id' | 'created_at' | 'updated_at'>) => {
+      if (isDemoMode()) return { status: 'demo' }
       const res = await fetch(`${API_BASE}/v1/rules`, {
         method: 'POST',
         headers: headers(),
